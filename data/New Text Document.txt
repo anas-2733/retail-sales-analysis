@@ -1,0 +1,105 @@
+# Retail Sales Analysis: Project Notes
+
+1. Objective
+Analyse retail sales performance to identify profitable categories, regional
+strengths and weaknesses, loss-making products, and seasonal sales trends.
+
+2. Dataset
+- Source: Sample Superstore (public dataset)
+- Size: 9,994 records, 21 columns
+- Period: January 2014 to December 2017
+- Tools: Excel, MySQL, Python (Pandas), Power BI
+
+3. Data Quality Checks
+- Missing values: none
+- Duplicate records: none (one record repeats if Row ID is ignored)
+- Order Date was stored as text (MM/DD/YYYY); converted to a proper date
+  type using the English (United States) locale in Power Query.
+
+4. Key Metrics
+| Metric        | Value        |
+|---------------|--------------|
+| Total Sales   | 2,297,200.86 |
+| Total Profit  | 286,397.02   |
+| Total Orders  | 5,009        |
+| Profit Margin | 12.47%       |
+
+5. Key Findings
+1. Category: Furniture generates 741,999.80 in sales but only 18,451.27 in
+   profit. Technology leads in both sales (836,154.03) and profit (145,454.95).
+2. Loss-making sub-categories: Tables (-17,725), Bookcases (-3,473) and
+   Supplies (-1,189). Tables and Bookcases explain Furniture's low profit.
+3. Region: West performs best (sales 725,458; profit 108,418). Central has
+   the weakest margin at about 7.9%, despite sales of 501,240.
+4. Seasonality: Sales peak in September, November and December every year.
+   February is the weakest month.
+5. Growth: Sales dipped about 3% in 2015, then grew about 29% in 2016 and
+   about 20% in 2017.
+
+6. Recommendations (preliminary)
+- Review pricing and discounting on Tables and Bookcases.
+- Investigate why Central's margin is much lower than other regions.
+- Plan inventory and promotions around the September to December peak.
+
+7. Pending Analysis
+- Relationship between discount and profit (Python)
+- Loss-making orders and customers (SQL)
+- Interactive dashboard (Power BI)
+
+
+
+
+## SQL Analysis (MySQL)
+
+### Setup
+- Database: retail_sales, table: superstore (9,994 rows, 21 columns)
+- Data was loaded with a generated SQL script. The Workbench Import Wizard
+  skipped about 300 rows because of the file's latin1 encoding, so it was
+  not used.
+- Dates were stored as DATE type (source format MM/DD/YYYY).
+- Postal codes were stored as text and padded to 5 digits, because the CSV
+  had dropped leading zeros (449 records).
+- Validation: row count 9,994, total sales 2,297,200.86 and total profit
+  286,397.02 matched the Excel results.
+- Script: sql/analysis_queries.sql
+
+### Queries and Results
+| # | Question                          | Technique                       | Result |
+|---|-----------------------------------|---------------------------------|--------|
+| 1 | Overall KPIs                      | SUM, COUNT(DISTINCT)            | Sales 2,297,200.86; Profit 286,397.02; Orders 5,009 |
+| 2 | Sales and profit by category      | GROUP BY, ORDER BY              | Technology 836,154 / 145,455; Furniture 741,999 / 18,451; Office Supplies 719,047 / 122,491 |
+| 3 | Performance by region             | GROUP BY, ORDER BY              | West 108,418 profit; East 91,523; South 46,749; Central 39,706 |
+| 4 | Loss-making sub-categories        | GROUP BY, HAVING                | Tables -17,725; Bookcases -3,473; Supplies -1,189 |
+| 5 | Monthly sales trend               | YEAR(), MONTH(), GROUP BY       | 48 months (2014 to 2017) |
+| 6 | Discount band vs profit           | CASE WHEN, GROUP BY             | See finding 1 |
+| 7 | Top 10 loss-making products       | GROUP BY, ORDER BY, LIMIT       | See finding 2 |
+| 8 | Top 10 customers by sales         | COUNT(DISTINCT), GROUP BY       | See finding 3 |
+| 9 | Order lines that lose money       | WHERE                           | 1,871 lines; total loss 156,131.29 |
+
+### Key Findings
+1. Discount is the strongest driver of loss.
+   | Discount band | Order lines | Margin  |
+   |---------------|-------------|---------|
+   | 0%            | 4,798       | 29.51%  |
+   | 1-20%         | 3,803       | 11.91%  |
+   | 21-40%        | 460         | -15.30% |
+   | Above 40%     | 933         | -77.40% |
+   The 1,393 lines with discounts above 20% lose about 135,376 combined.
+2. The largest product losses are the Cubify CubeX 3D Printer, Double Head
+   (-8,880), the Lexmark MX611dhe Laser Printer (-4,590) and the Cubify CubeX
+   3D Printer, Triple Head (-3,840). Heavy losses are not limited to
+   Furniture.
+3. The top customer by sales, Sean Miller (25,043), is unprofitable at
+   -1,981. Tamara Chand (19,052) and Raymond Buch (15,117) are profitable.
+4. 1,871 order lines (about 19% of all lines) lose money, with a total loss
+   of 156,131, which is more than half of the total profit of 286,397.
+
+### Recommendations (SQL stage)
+- Cap or review discounts above 20%, as they consistently produce losses.
+- Review pricing on the Cubify 3D printers, the Lexmark printer, Tables and
+  Bookcases.
+- Check the discount pattern in Sean Miller's orders before offering
+  further discounts to high-volume customers.
+
+### Pending
+- Confirm in Python whether discount drives the losses within each category.
